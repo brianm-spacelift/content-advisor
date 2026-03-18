@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Spacelift Content Advisor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0a1a; color: #e8e6f0; font-family: Georgia, serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+  #app { width: 100%; max-width: 600px; }
+
+  .header { text-align: center; margin-bottom: 28px; }
+  .eyebrow { font-size: 10px; letter-spacing: 0.2em; color: #9901ff; text-transform: uppercase; margin-bottom: 8px; font-family: sans-serif; font-weight: 600; }
+  h1 { font-size: 26px; font-weight: 600; color: #f0eeff; }
+  .subtitle { font-size: 13px; color: #5a5070; margin-top: 8px; font-family: sans-serif; }
+
+  .screen-title { font-family: sans-serif; font-size: 16px; color: #d4d0e8; margin-bottom: 5px; font-weight: 500; }
+  .screen-hint { font-family: sans-serif; font-size: 12px; color: #4a4060; margin-bottom: 18px; }
+
+  .breadcrumb { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .bc-item { font-family: sans-serif; font-size: 11px; color: #4a4060; cursor: pointer; }
+  .bc-item:hover { color: #9901ff; }
+  .bc-sep { color: #2a2040; font-size: 11px; }
+  .bc-active { font-family: sans-serif; font-size: 11px; color: #9901ff; }
+
+  .option-card { background: #1a1128; border: 1px solid #2a2040; border-radius: 10px; padding: 16px 18px; cursor: pointer; display: flex; align-items: center; gap: 14px; margin-bottom: 8px; transition: all 0.15s; }
+  .option-card:hover { border-color: #9901ff; transform: translateY(-1px); }
+  .oc-icon { font-size: 20px; flex-shrink: 0; }
+  .oc-label { font-family: sans-serif; font-size: 14px; color: #d4d0e8; display: block; }
+  .oc-desc { font-family: sans-serif; font-size: 11px; color: #4a4060; margin-top: 3px; display: block; }
+  .oc-arrow { color: #2a2040; font-size: 18px; flex-shrink: 0; margin-left: auto; }
+
+  .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .tag { background: #1a1128; border: 1px solid #2a2040; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-family: sans-serif; font-size: 12px; color: #7a7090; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+  .tag:hover { border-color: #9901ff; color: #d4d0e8; }
+  .tag.sel { background: #1e0a38; border-color: #9901ff; color: #cc66ff; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .persona-card { background: #1a1128; border: 1px solid #2a2040; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.15s; }
+  .persona-card:hover { border-color: #9901ff; }
+  .persona-card.sel { border-color: #9901ff; background: #1e0a38; }
+  .pc-icon { font-size: 22px; margin-bottom: 7px; display: block; }
+  .pc-name { font-family: sans-serif; font-size: 13px; color: #d4d0e8; font-weight: 600; display: block; }
+  .pc-desc { font-family: sans-serif; font-size: 10px; color: #4a4060; margin-top: 3px; display: block; line-height: 1.4; }
+
+  .asset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .asset-card { background: #1a1128; border: 1px solid #2a2040; border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 10px; }
+  .asset-card:hover { border-color: #9901ff; }
+  .asset-card.sel { border-color: #9901ff; background: #1e0a38; }
+  .ac-icon { font-size: 16px; flex-shrink: 0; }
+  .ac-name { font-family: sans-serif; font-size: 12px; color: #d4d0e8; display: block; }
+  .ac-sub { font-family: sans-serif; font-size: 10px; color: #4a4060; display: block; margin-top: 2px; }
+
+  .filter-section { margin-bottom: 18px; }
+  .filter-label { font-family: sans-serif; font-size: 10px; color: #4a4060; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+  .stage-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stage-tag { background: #1a1128; border: 1px solid #2a2040; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-family: sans-serif; font-size: 12px; color: #5a5070; transition: all 0.15s; }
+  .stage-tag:hover { border-color: #3a2060; color: #d4d0e8; }
+  .stage-tag.sel { background: #1e0a38; border-color: #9901ff; color: #cc66ff; }
+
+  .divider { height: 1px; background: #1e1830; margin: 16px 0; }
+  .narrow-label { font-family: sans-serif; font-size: 12px; color: #4a4060; margin-bottom: 10px; }
+
+  .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+  .btn-purple { background: #9901ff; color: #ffffff; border: none; border-radius: 8px; padding: 11px 24px; font-family: sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; min-width: 160px; transition: opacity 0.15s; }
+  .btn-purple:hover { opacity: 0.88; }
+  .btn-purple:disabled { background: #2a2040; color: #444; cursor: default; opacity: 1; }
+  .btn-ghost { background: transparent; color: #4a4060; border: 1px solid #2a2040; border-radius: 8px; padding: 11px 20px; font-family: sans-serif; font-size: 13px; cursor: pointer; }
+  .btn-ghost:hover { color: #7a7090; border-color: #3a3050; }
+  .btn-outline-purple { background: transparent; color: #9901ff; border: 1px solid #9901ff44; border-radius: 8px; padding: 7px 16px; font-family: sans-serif; font-size: 12px; cursor: pointer; }
+
+  .results-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .results-meta { font-family: sans-serif; font-size: 12px; color: #4a4060; margin-bottom: 6px; }
+  .r-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .r-chip { background: #1a1128; border: 1px solid #3a2060; border-radius: 10px; padding: 2px 10px; font-family: sans-serif; font-size: 11px; color: #cc66ff; }
+
+  .result-card { background: #1a1128; border: 1px solid #2a2040; border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; transition: border-color 0.15s; }
+  .result-card:hover { border-color: #3a2060; }
+  .result-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .result-info { flex: 1; }
+  .result-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .type-badge { font-size: 10px; font-family: sans-serif; font-weight: 700; padding: 2px 8px; border-radius: 6px; color: #1a1128; white-space: nowrap; }
+  .topic-badge { font-size: 10px; font-family: sans-serif; padding: 2px 8px; border-radius: 6px; background: #1e0a38; color: #cc66ff; border: 1px solid #3a1060; }
+  .result-name { font-size: 15px; font-weight: 600; color: #f0eeff; line-height: 1.3; margin-bottom: 6px; }
+  .result-notes { font-family: sans-serif; font-size: 12px; color: #5a5070; line-height: 1.5; margin: 0; }
+  .open-btn { background: #9901ff; color: #ffffff; border-radius: 7px; padding: 8px 14px; font-size: 12px; font-family: sans-serif; font-weight: 700; text-decoration: none; white-space: nowrap; flex-shrink: 0; display: inline-block; }
+  .open-btn:hover { opacity: 0.88; }
+
+  .count-badge { display: inline-block; background: #1e0a38; border: 1px solid #3a1060; border-radius: 10px; padding: 1px 8px; font-family: sans-serif; font-size: 10px; color: #9901ff; margin-left: 5px; }
+
+  .no-results { text-align: center; padding: 40px 20px; }
+  .no-results-icon { font-size: 36px; margin-bottom: 12px; }
+  .no-results-msg { font-family: sans-serif; font-size: 14px; color: #4a4060; margin-bottom: 6px; }
+  .no-results-hint { font-family: sans-serif; font-size: 12px; color: #3a3050; }
+
+  .loading-wrap { text-align: center; padding: 48px 20px; }
+  .loading-spinner { width: 32px; height: 32px; border: 3px solid #2a2040; border-top-color: #9901ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: sans-serif; font-size: 13px; color: #4a4060; }
+
+  .error-box { background: #1e0a1a; border: 1px solid #4a1a3a; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+  .error-title { font-family: sans-serif; font-size: 13px; color: #e05c9c; font-weight: 600; margin-bottom: 4px; }
+  .error-msg { font-family: sans-serif; font-size: 12px; color: #7a4a6a; line-height: 1.5; }
+
+  .config-box { background: #1a1128; border: 1px solid #9901ff44; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .config-title { font-family: sans-serif; font-size: 15px; color: #9901ff; font-weight: 600; margin-bottom: 8px; }
+  .config-desc { font-family: sans-serif; font-size: 12px; color: #5a5070; margin-bottom: 16px; line-height: 1.6; }
+  .config-input { width: 100%; background: #0f0a1a; border: 1px solid #2a2040; border-radius: 8px; padding: 10px 14px; font-family: sans-serif; font-size: 12px; color: #d4d0e8; outline: none; }
+  .config-input:focus { border-color: #9901ff; }
+  .config-input::placeholder { color: #3a3050; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+
+// ── CONFIG — paste your published CSV URL here ──────────────────
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeveqGh5k8t5SIYQG-sSrS0wesLpLoJi0RLAtih83vk4OifzJ5xJzl6AdE_o5zzfQT5oCspCZJ0IoQ/pub?gid=1652606233&single=true&output=csv";
+// ────────────────────────────────────────────────────────────────
+
+const TOPICS = [
+  { id:"Governance",           label:"Governance",           icon:"🏛️" },
+  { id:"Security",             label:"Security",             icon:"🔐" },
+  { id:"Compliance",           label:"Compliance",           icon:"✅" },
+  { id:"Migration",            label:"Migration",            icon:"🚀" },
+  { id:"Workflow / Automation",label:"Workflow / Automation",icon:"⚡" },
+  { id:"Pricing / ROI",        label:"Pricing / ROI",        icon:"💰" },
+  { id:"AI / Intelligence",    label:"AI / Intelligence",    icon:"🤖" },
+  { id:"Developer Experience", label:"Developer Experience", icon:"💻" },
+  { id:"Scalability",          label:"Scalability",          icon:"📈" },
+  { id:"Cost Optimization",    label:"Cost Optimization",    icon:"🎯" },
+];
+
+const PERSONAS = [
+  { id:"Technical", label:"Technical",  icon:"⚙️", desc:"DevOps, Platform Engineer, Architect, SRE" },
+  { id:"Manager",   label:"Manager",    icon:"👔", desc:"Engineering Manager, VP Engineering, Team Lead" },
+  { id:"Executive", label:"Executive",  icon:"🏢", desc:"CTO, CIO, CISO, VP Infrastructure" },
+  { id:"End-User",  label:"End User",   icon:"💻", desc:"Developer, day-to-day practitioner" },
+];
+
+const ASSET_TYPES = [
+  { id:"Case Study",              label:"Case Study",              icon:"📋", sub:"Customer proof points" },
+  { id:"Competitive Comparison",  label:"Competitive Comparison",  icon:"⚔️", sub:"vs. competitors" },
+  { id:"Battlecard",              label:"Battlecard",              icon:"🃏", sub:"Quick competitive ref" },
+  { id:"One-Pager",               label:"One-Pager",               icon:"📄", sub:"Single page overview" },
+  { id:"Datasheet",               label:"Datasheet",               icon:"📊", sub:"Feature & spec sheet" },
+  { id:"Solution Brief",          label:"Solution Brief",          icon:"📝", sub:"Problem/solution framing" },
+  { id:"Product Overview",        label:"Product Overview",        icon:"🔭", sub:"Product capabilities" },
+  { id:"Technical Deep Dive",     label:"Technical Deep Dive",     icon:"🔬", sub:"Architecture & detail" },
+  { id:"Whitepaper",              label:"Whitepaper",              icon:"📚", sub:"Research & long-form" },
+  { id:"E-book",                  label:"E-book",                  icon:"📖", sub:"Long-form educational" },
+  { id:"Blog / Thought Leadership",label:"Blog / Article",         icon:"✍️", sub:"Thought leadership" },
+  { id:"Webinar / Video",         label:"Webinar / Video",         icon:"🎥", sub:"On-demand content" },
+  { id:"Sales Deck",              label:"Sales Deck",              icon:"📑", sub:"Presentation decks" },
+  { id:"Executive Summary",       label:"Executive Summary",       icon:"🎯", sub:"C-suite ready" },
+  { id:"Migration Guide",         label:"Migration Guide",         icon:"🗺️", sub:"How-to migration" },
+  { id:"Technical Guide",         label:"Technical Guide",         icon:"🔧", sub:"Implementation guides" },
+  { id:"Integration Guide",       label:"Integration Guide",       icon:"🔗", sub:"Integration how-tos" },
+  { id:"Feature Brief",           label:"Feature Brief",           icon:"⭐", sub:"Specific feature focus" },
+  { id:"Infographic",             label:"Infographic",             icon:"🖼️", sub:"Visual explainers" },
+  { id:"Analyst Briefing",        label:"Analyst Briefing",        icon:"🏆", sub:"Analyst reports" },
+  { id:"Speaking Session",        label:"Speaking Session",        icon:"🎤", sub:"Conference talks" },
+];
+
+const STAGES = [
+  { id:"Exploring",   label:"Exploring" },
+  { id:"Evaluating",  label:"Evaluating" },
+  { id:"Negotiating", label:"Negotiating" },
+  { id:"Closing",     label:"Closing" },
+];
+
+const TYPE_COLORS = {
+  "Case Study":"#fef3c7","Competitive Comparison":"#e0e7ff","Battlecard":"#dbeafe",
+  "One-Pager":"#d1fae5","Datasheet":"#d1fae5","Solution Brief":"#ede9fe",
+  "Product Overview":"#e0f2fe","Technical Deep Dive":"#fce7f3",
+  "Whitepaper":"#ede9fe","E-book":"#f3e8ff","Blog / Thought Leadership":"#f0fdf4",
+  "Webinar / Video":"#fee2e2","Sales Deck":"#fef9c3","Executive Summary":"#fef9c3",
+  "Migration Guide":"#ffedd5","Technical Guide":"#ffedd5","Integration Guide":"#ffedd5",
+  "Feature Brief":"#ecfdf5","Infographic":"#fdf2f8","Analyst Briefing":"#fffbeb",
+  "Speaking Session":"#fdf4ff",
+};
+
+// ── STATE ──
+let ASSETS = [];
+let S = { screen:"loading", path:null, topic:null, persona:null, assetType:null, stage:null, error:null };
+
+// ── CSV PARSER — handles comma-delimited multi-value fields wrapped in quotes ──
+function parseCSV(raw) {
+  const lines = raw.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  // parse a single CSV line respecting quoted fields
+  function parseLine(line) {
+    const fields = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; } // escaped quote
+        else { inQ = !inQ; }
+      } else if (c === ',' && !inQ) {
+        fields.push(cur.trim());
+        cur = "";
+      } else {
+        cur += c;
+      }
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+
+  const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g,"").trim().toLowerCase());
+
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = (vals[i] || "").replace(/^"|"$/g,"").trim();
+    });
+
+    // parse comma-separated multi-value fields into arrays
+    ["topic","persona","stage"].forEach(f => {
+      obj[f] = obj[f]
+        ? obj[f].split(",").map(v => v.trim()).filter(Boolean)
+        : [];
+    });
+
+    return obj;
+  }).filter(a => {
+    const activeVal = (a.active || "").toLowerCase();
+    return activeVal !== "no" && a.asset_name;
+  });
+}
+
+// ── DATA LOAD ──
+async function loadData(urlOverride) {
+  const url = urlOverride || CSV_URL;
+  if (!url) { S.screen = "config"; render(); return; }
+  S.screen = "loading"; render();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} — make sure the sheet is published as CSV (not HTML).`);
+    const text = await res.text();
+    ASSETS = parseCSV(text);
+    if (ASSETS.length === 0) throw new Error("No active assets found. Check that rows have active=yes and that CSV published correctly.");
+    S.screen = "home";
+  } catch(e) {
+    S.screen = "error"; S.error = e.message;
+  }
+  render();
+}
+window.loadData = loadData;
+
+window.saveConfig = function() {
+  const val = document.getElementById("csv-input")?.value?.trim();
+  if (val) loadData(val);
+};
+
+// ── FILTER ──
+function filterAssets() {
+  return ASSETS.filter(a => {
+    if (S.topic     && !a.topic.includes(S.topic))         return false;
+    if (S.persona   && !a.persona.includes(S.persona))     return false;
+    if (S.assetType && a.asset_type !== S.assetType)        return false;
+    if (S.stage     && !a.stage.includes(S.stage))          return false;
+    return true;
+  });
+}
+
+function countFor(overrides) {
+  const m = { topic:S.topic, persona:S.persona, assetType:S.assetType, stage:S.stage, ...overrides };
+  return ASSETS.filter(a => {
+    if (m.topic     && !a.topic.includes(m.topic))     return false;
+    if (m.persona   && !a.persona.includes(m.persona)) return false;
+    if (m.assetType && a.asset_type !== m.assetType)    return false;
+    if (m.stage     && !a.stage.includes(m.stage))      return false;
+    return true;
+  }).length;
+}
+
+function reset() {
+  S = { screen:"home", path:null, topic:null, persona:null, assetType:null, stage:null, error:null };
+  render();
+}
+window.reset = reset;
+window.goBack = function() { S.screen = "path-" + S.path; render(); };
+
+// ── RENDER ──
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="header">
+      <div class="eyebrow">Spacelift · Sales Enablement</div>
+      <h1>Content Advisor</h1>
+      <p class="subtitle">Right content. Right conversation. Right now.</p>
+    </div>`;
+  const content = document.createElement("div");
+  ({
+    loading: renderLoading, error: renderError, config: renderConfig,
+    home: renderHome, results: renderResults,
+    "path-topic": renderTopicPath, "path-persona": renderPersonaPath,
+    "path-asset": renderAssetPath, "path-browse": renderBrowsePath,
+  }[S.screen] || renderHome)(content);
+  wrap.appendChild(content);
+  app.appendChild(wrap);
+}
+
+// ── SCREENS ──
+
+function renderLoading(el) {
+  el.innerHTML = `<div class="loading-wrap"><div class="loading-spinner"></div><div class="loading-text">Loading content library…</div></div>`;
+}
+
+function renderError(el) {
+  el.innerHTML = `
+    <div class="error-box">
+      <div class="error-title">Could not load content library</div>
+      <div class="error-msg">${S.error}</div>
+    </div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn-purple" onclick="loadData()">Try Again</button>
+    </div>`;
+}
+
+function renderConfig(el) {
+  el.innerHTML = `
+    <div class="config-box">
+      <div class="config-title">⚙️ Connect Your Content Library</div>
+      <div class="config-desc">Paste the published CSV URL from your Google Sheet.<br>File → Share → Publish to web → select tab → <strong style="color:#d4d0e8">CSV</strong> → Publish.</div>
+      <input class="config-input" id="csv-input" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv"/>
+    </div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn-purple" onclick="saveConfig()">Connect →</button>
+    </div>`;
+}
+
+function renderHome(el) {
+  const total = ASSETS.length;
+  el.innerHTML = `<p style="font-family:sans-serif;font-size:13px;color:#5a5070;text-align:center;margin-bottom:18px">How can I help you find content? <span style="color:#3a2060;font-size:11px">${total} assets loaded</span></p>`;
+  [
+    { id:"topic",   icon:"🔥", label:"They raised a topic or objection",  desc:"Governance, security, pricing, compliance, AI…" },
+    { id:"persona", icon:"👤", label:"I know who I'm meeting with",        desc:"Technical, manager, executive, end user" },
+    { id:"asset",   icon:"📄", label:"I need a specific type of content",  desc:"Case study, battlecard, one-pager, deck, video…" },
+    { id:"browse",  icon:"🔎", label:"Browse everything",                  desc:"Filter by any combination of topic, persona, stage, type" },
+  ].forEach(opt => {
+    const card = document.createElement("div");
+    card.className = "option-card";
+    card.innerHTML = `<span class="oc-icon">${opt.icon}</span><span style="flex:1"><span class="oc-label">${opt.label}</span><span class="oc-desc">${opt.desc}</span></span><span class="oc-arrow">›</span>`;
+    card.onclick = () => { S.path = opt.id; S.screen = "path-" + opt.id; render(); };
+    el.appendChild(card);
+  });
+}
+
+function renderTopicPath(el) {
+  bc(el, ["Home","Topic / Objection"]);
+  el.innerHTML += `<p class="screen-title">What topic or objection came up?</p><p class="screen-hint">Pick the one driving the conversation.</p>`;
+  const grid = div("tag-grid");
+  TOPICS.forEach(t => {
+    const n = countFor({ topic:t.id });
+    const tag = div("tag" + (S.topic===t.id?" sel":""));
+    tag.innerHTML = `<span>${t.icon}</span>${t.label}<span class="count-badge">${n}</span>`;
+    if (n > 0) tag.onclick = () => { S.topic = S.topic===t.id ? null : t.id; render(); };
+    else tag.style.opacity = "0.25";
+    grid.appendChild(tag);
+  });
+  el.appendChild(grid);
+  if (S.topic) {
+    addDivider(el, "Narrow further? (optional)");
+    addStageRow(el);
+    addPersonaTags(el);
+  }
+  addBtnRow(el, filterAssets().length, !!S.topic);
+}
+
+function renderPersonaPath(el) {
+  bc(el, ["Home","Persona"]);
+  el.innerHTML += `<p class="screen-title">Who are you meeting with?</p><p class="screen-hint">Pick the primary person in the room.</p>`;
+  const grid = div("grid2");
+  PERSONAS.forEach(p => {
+    const n = countFor({ persona:p.id });
+    const card = div("persona-card" + (S.persona===p.id?" sel":""));
+    card.innerHTML = `<span class="pc-icon">${p.icon}</span><span class="pc-name">${p.label} <span class="count-badge">${n}</span></span><span class="pc-desc">${p.desc}</span>`;
+    if (n > 0) card.onclick = () => { S.persona = S.persona===p.id ? null : p.id; render(); };
+    else card.style.opacity = "0.25";
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+  if (S.persona) {
+    addDivider(el, "What do they care about? (optional)");
+    addTopicTags(el);
+    addDivider(el, "Deal stage? (optional)");
+    addStageRow(el);
+  }
+  addBtnRow(el, filterAssets().length, !!S.persona);
+}
+
+function renderAssetPath(el) {
+  bc(el, ["Home","Asset Type"]);
+  el.innerHTML += `<p class="screen-title">What type of content do you need?</p><p class="screen-hint">Pick the format that fits your situation.</p>`;
+  const grid = div("asset-grid");
+  ASSET_TYPES.forEach(a => {
+    const n = countFor({ assetType:a.id });
+    const card = div("asset-card" + (S.assetType===a.id?" sel":""));
+    card.innerHTML = `<span class="ac-icon">${a.icon}</span><span><span class="ac-name">${a.label} <span class="count-badge">${n}</span></span><span class="ac-sub">${a.sub}</span></span>`;
+    if (n > 0) card.onclick = () => { S.assetType = S.assetType===a.id ? null : a.id; render(); };
+    else card.style.opacity = "0.25";
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+  if (S.assetType) {
+    addDivider(el, "Narrow by topic? (optional)");
+    addTopicTags(el);
+    addDivider(el, "Deal stage? (optional)");
+    addStageRow(el);
+  }
+  addBtnRow(el, filterAssets().length, !!S.assetType);
+}
+
+function renderBrowsePath(el) {
+  bc(el, ["Home","Browse All"]);
+  el.innerHTML += `<p class="screen-title">Filter by anything — or everything.</p><p class="screen-hint">All filters optional.</p>`;
+
+  [
+    { label:"Topic / Objection", fn: addTopicTags },
+    { label:"Persona",           fn: addPersonaTags },
+    { label:"Asset Type",        fn: addAssetTypeTags },
+    { label:"Sales Stage",       fn: addStageRow },
+  ].forEach(({ label, fn }) => {
+    const sec = div("filter-section");
+    sec.innerHTML = `<div class="filter-label">${label}</div>`;
+    fn(sec);
+    el.appendChild(sec);
+  });
+
+  const has = S.topic || S.persona || S.assetType || S.stage;
+  addBtnRow(el, filterAssets().length, !!has);
+}
+
+function renderResults(el) {
+  const assets = filterAssets();
+  const chips = [
+    S.topic     && TOPICS.find(t=>t.id===S.topic)?.label,
+    S.persona   && PERSONAS.find(p=>p.id===S.persona)?.label,
+    S.assetType && S.assetType,
+    S.stage     && S.stage,
+  ].filter(Boolean);
+
+  const header = div("results-header");
+  header.innerHTML = `
+    <div>
+      <div class="results-meta">${assets.length} asset${assets.length!==1?"s":""} found for</div>
+      <div class="r-chips">${chips.map(c=>`<span class="r-chip">${c}</span>`).join("")}</div>
+    </div>
+    <button class="btn-outline-purple" onclick="reset()">Start Over</button>`;
+  el.appendChild(header);
+
+  if (assets.length === 0) {
+    el.innerHTML += `<div class="no-results"><div class="no-results-icon">🔍</div><div class="no-results-msg">No assets match all your filters.</div><div class="no-results-hint">Try removing one filter to broaden results.</div></div>`;
+  } else {
+    assets.forEach(a => {
+      const card = div("result-card");
+      const topicBadges = a.topic.slice(0,2).map(t=>`<span class="topic-badge">${t}</span>`).join("");
+      card.innerHTML = `
+        <div class="result-top">
+          <div class="result-info">
+            <div class="result-badges">
+              <span class="type-badge" style="background:${TYPE_COLORS[a.asset_type]||'#ede9fe'}">${a.asset_type||"Asset"}</span>
+              ${topicBadges}
+            </div>
+            <div class="result-name">${a.asset_name}</div>
+            ${a.notes ? `<p class="result-notes">${a.notes}</p>` : ""}
+          </div>
+          <a href="${a.gdrive_url||'#'}" target="_blank" class="open-btn">Open ↗</a>
+        </div>`;
+      el.appendChild(card);
+    });
+  }
+
+  const refine = div("");
+  refine.style.cssText = "margin-top:14px;text-align:center;";
+  refine.innerHTML = `<button class="btn-ghost" style="font-size:12px" onclick="goBack()">← Refine filters</button>`;
+  el.appendChild(refine);
+}
+
+// ── COMPONENT HELPERS ──
+
+function div(cls) { const d = document.createElement("div"); if (cls) d.className = cls; return d; }
+
+function bc(el, items) {
+  const d = div("breadcrumb");
+  items.forEach((item, i) => {
+    const s = document.createElement("span");
+    s.className = i===items.length-1 ? "bc-active" : "bc-item";
+    s.textContent = item;
+    if (i===0) s.onclick = reset;
+    d.appendChild(s);
+    if (i < items.length-1) { const sep=document.createElement("span"); sep.className="bc-sep"; sep.textContent="›"; d.appendChild(sep); }
+  });
+  el.appendChild(d);
+}
+
+function addDivider(el, label) {
+  const d = div(""); d.innerHTML = `<div class="divider"></div><p class="narrow-label">${label}</p>`; el.appendChild(d);
+}
+
+function addTopicTags(el) {
+  const g = div("tag-grid");
+  TOPICS.forEach(t => {
+    const n = countFor({ topic:t.id });
+    const tag = div("tag" + (S.topic===t.id?" sel":""));
+    tag.innerHTML = `${t.icon} ${t.label}<span class="count-badge">${n}</span>`;
+    tag.onclick = () => { S.topic = S.topic===t.id ? null : t.id; render(); };
+    g.appendChild(tag);
+  });
+  el.appendChild(g);
+}
+
+function addPersonaTags(el) {
+  const g = div("tag-grid");
+  PERSONAS.forEach(p => {
+    const tag = div("tag" + (S.persona===p.id?" sel":""));
+    tag.innerHTML = `${p.icon} ${p.label}`;
+    tag.onclick = () => { S.persona = S.persona===p.id ? null : p.id; render(); };
+    g.appendChild(tag);
+  });
+  el.appendChild(g);
+}
+
+function addAssetTypeTags(el) {
+  const g = div("tag-grid");
+  ASSET_TYPES.forEach(a => {
+    const tag = div("tag" + (S.assetType===a.id?" sel":""));
+    tag.innerHTML = `${a.icon} ${a.label}`;
+    tag.onclick = () => { S.assetType = S.assetType===a.id ? null : a.id; render(); };
+    g.appendChild(tag);
+  });
+  el.appendChild(g);
+}
+
+function addStageRow(el) {
+  const r = div("stage-row"); r.style.marginBottom = "4px";
+  STAGES.forEach(st => {
+    const tag = div("stage-tag" + (S.stage===st.id?" sel":""));
+    tag.textContent = st.label;
+    tag.onclick = () => { S.stage = S.stage===st.id ? null : st.id; render(); };
+    r.appendChild(tag);
+  });
+  el.appendChild(r);
+}
+
+function addBtnRow(el, count, canGo) {
+  const r = div("btn-row"); r.style.marginTop = "20px";
+  const back = document.createElement("button"); back.className="btn-ghost"; back.textContent="← Back"; back.onclick=reset;
+  const go = document.createElement("button"); go.className="btn-purple"; go.disabled=!canGo;
+  go.textContent = canGo ? `Show ${count} asset${count!==1?"s":""}` : "Make a selection";
+  go.onclick = () => { S.screen="results"; render(); };
+  r.appendChild(back); r.appendChild(go); el.appendChild(r);
+}
+
+// ── BOOT ──
+loadData();
+</script>
+</body>
+</html>
